@@ -5,6 +5,8 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_err.h"
+#include "esp_timer.h"
+#include "esp_log.h"
 
 static QueueHandle_t counter_queue = NULL;
 
@@ -15,7 +17,6 @@ static void increment_counter_task(void *arg)
     {
         cntr++;
         xQueueSend(counter_queue, &cntr, 10 / portTICK_PERIOD_MS);
-        printf("CNTR++");
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
@@ -23,11 +24,17 @@ static void increment_counter_task(void *arg)
 static void log_task(void *arg)
 {
     uint32_t cntr_lnk;
+    uint64_t ticks = 0;
+    uint64_t old_ticks = 0;
     while (1)
     {
-
-        if (xQueueReceive(counter_queue, &cntr_lnk, 5))
-            printf("Counter is: %ld\n", cntr_lnk);
+        if (xQueueReceive(counter_queue, &cntr_lnk, 50))
+        {
+            ticks = esp_timer_get_time();
+            ESP_LOGI("COUNTER", "counter is %ld", cntr_lnk);
+            ESP_LOGI("COUNTER", "period is %lld us", ticks - old_ticks);
+            old_ticks = ticks;
+        }
     }
 }
 
